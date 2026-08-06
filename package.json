@@ -1,0 +1,22 @@
+{
+  "name": "norc-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for connecting AI platforms to your norc account — manage cron jobs, machines, and run history.",
+  "type": "module",
+  "license": "MIT",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/server.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "tsx": "^4.0.0",
+    "vitest": "^2.0.0",
+    "@types/node": "^22.0.0"
+  }
+}
