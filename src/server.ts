@@ -41,6 +41,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     }
     const server = buildServer(apiKey)
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
+    res.on('close', () => {
+      transport.close()
+      server.close()
+    })
     await server.connect(transport)
     await transport.handleRequest(req, res)
   }).listen(port, () => {

@@ -10,7 +10,10 @@ export function registerJobTools(server: McpServer, client: VaultClient): void {
       inputSchema: { machine_id: z.string().optional() },
     },
     async ({ machine_id }) => {
-      const path = machine_id ? `/api/v1/jobs?machine_id=${encodeURIComponent(machine_id)}` : '/api/v1/jobs'
+      const params = new URLSearchParams()
+      if (machine_id) params.set('machine_id', machine_id)
+      const qs = params.toString()
+      const path = `/api/v1/jobs${qs ? `?${qs}` : ''}`
       const jobs = await client.get(path)
       return { content: [{ type: 'text', text: JSON.stringify(jobs, null, 2) }] }
     },
