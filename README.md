@@ -25,6 +25,18 @@ PORT=3000 node dist/server.js
 
 Note: self-hosting this server does not mean self-hosting norc itself — it still talks to the hosted norc API.
 
+## Run via Docker
+
+```bash
+docker run -p 3000:3000 norcapp/norc-mcp
+```
+
+Set `NORC_VAULT_URL` if you're pointing at a non-default vault instance:
+
+```bash
+docker run -p 3000:3000 -e NORC_VAULT_URL=https://vault.norc.app norcapp/norc-mcp
+```
+
 ## License
 
 MIT
