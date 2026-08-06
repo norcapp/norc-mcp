@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import type { VaultClient } from '../vault-client'
+import type { VaultClient } from '../vault-client.js'
 
 export function registerJobTools(server: McpServer, client: VaultClient): void {
   server.registerTool(

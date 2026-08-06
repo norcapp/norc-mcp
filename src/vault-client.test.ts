@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { VaultClient, VaultApiError } from './vault-client'
+import { VaultClient, VaultApiError } from './vault-client.js'
 
 const fetchMock = vi.fn()
 beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal('fetch', fetchMock) })

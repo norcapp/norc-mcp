@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { registerJobTools } from './jobs'
+import { registerJobTools } from './jobs.js'
 
 function fakeClient(overrides: Record<string, (...args: unknown[]) => unknown> = {}) {
   return { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn(), ...overrides } as never
