@@ -7,6 +7,41 @@ MCP server for connecting AI platforms (Claude, ChatGPT, etc.) to your [norc](ht
 1. Generate a norc API key: vault → Settings → API Keys → Generate key.
 2. Add this server to your MCP client's connector config, pointing at `https://mcp.norc.app/mcp` with your key as the Bearer token (exact field depends on the client).
 
+For clients that read a `mcpServers` JSON block (Claude Desktop's `claude_desktop_config.json`, Claude Code's `claude mcp add-json`, etc.), paste this in and swap in your key:
+
+```json
+{
+  "mcpServers": {
+    "norc": {
+      "type": "http",
+      "url": "https://mcp.norc.app/mcp",
+      "headers": {
+        "Authorization": "Bearer norc_sk_your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+Older clients that only support stdio-based servers can reach the same endpoint through the [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) bridge instead:
+
+```json
+{
+  "mcpServers": {
+    "norc": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.norc.app/mcp",
+        "--header",
+        "Authorization: Bearer norc_sk_your_api_key_here"
+      ]
+    }
+  }
+}
+```
+
 ## Tools
 
 - `list_jobs`, `create_job`, `update_job`, `delete_job`
