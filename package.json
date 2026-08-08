@@ -5,6 +5,7 @@
   "type": "module",
   "license": "MIT",
   "main": "dist/server.js",
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/server.ts",
