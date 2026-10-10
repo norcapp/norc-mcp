@@ -4,6 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { VaultClient } from './vault-client.js'
 import { registerJobTools } from './tools/jobs.js'
+import { registerGitopsTools } from './tools/gitops.js'
 import { registerMachineTools } from './tools/machines.js'
 import { registerRunTools } from './tools/runs.js'
 
@@ -17,11 +18,12 @@ export function extractApiKey(headers: Headers): string | null {
 }
 
 function buildServer(apiKey: string): McpServer {
-  const server = new McpServer({ name: 'norc-mcp', version: '0.1.0' })
+  const server = new McpServer({ name: 'norc-mcp', version: '0.2.2' })
   const client = new VaultClient(apiKey, VAULT_BASE_URL)
   registerJobTools(server, client)
   registerMachineTools(server, client)
   registerRunTools(server, client)
+  registerGitopsTools(server, client)
   return server
 }
 
