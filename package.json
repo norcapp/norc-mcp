@@ -5,6 +5,25 @@
   "type": "module",
   "license": "MIT",
   "main": "dist/server.js",
+  "bin": {
+    "norc-mcp": "dist/server.js"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/norcapp/norc-mcp.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "build": "tsc",
