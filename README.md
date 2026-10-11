@@ -12,6 +12,7 @@ MCP server for connecting AI platforms (Claude, ChatGPT, etc.) to your [norc](ht
 - `list_jobs`, `create_job`, `update_job`, `delete_job`
 - `list_machines`, `rename_machine`, `delete_machine`
 - `list_runs`
+- `sync_jobs` — declarative sync of your full job set (like `norc gitops`). Dry run by default; jobs not listed are deleted when `apply` is true. Needs the gitops sync feature enabled on your account.
 
 ## Self-hosting
 
