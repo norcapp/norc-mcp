@@ -2,33 +2,10 @@
 import { realpathSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { pathToFileURL } from 'node:url'
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
-import { VaultClient } from './vault-client.js'
-import { registerJobTools } from './tools/jobs.js'
-import { registerGitopsTools } from './tools/gitops.js'
-import { registerMachineTools } from './tools/machines.js'
-import { registerRunTools } from './tools/runs.js'
+import { buildServer, extractApiKey, handleMcp } from './handler.js'
 
-const VAULT_BASE_URL = process.env.NORC_VAULT_URL ?? 'https://vault.norc.app'
-
-export function extractApiKey(headers: Headers): string | null {
-  const auth = headers.get('authorization') ?? ''
-  if (!auth.startsWith('Bearer ')) return null
-  const raw = auth.slice('Bearer '.length).trim()
-  return raw.startsWith('norc_sk_') ? raw : null
-}
-
-function buildServer(apiKey: string): McpServer {
-  const server = new McpServer({ name: 'norc-mcp', version: '0.3.0' })
-  const client = new VaultClient(apiKey, VAULT_BASE_URL)
-  registerJobTools(server, client)
-  registerMachineTools(server, client)
-  registerRunTools(server, client)
-  registerGitopsTools(server, client)
-  return server
-}
+export { extractApiKey }
 
 // stdio mode (a local MCP client spawns us, key comes from the environment) when
 // NORC_API_KEY is set or --stdio is passed; otherwise the HTTP listener (Docker, self-hosting).
@@ -49,24 +26,11 @@ async function runStdio(): Promise<void> {
 function runHttp(): void {
   const port = Number(process.env.PORT ?? 3000)
   createServer(async (req, res) => {
-    if (req.url !== '/mcp' || req.method !== 'POST') {
+    if (req.url !== '/mcp') {
       res.writeHead(404).end()
       return
     }
-    const headers = new Headers(req.headers as Record<string, string>)
-    const apiKey = extractApiKey(headers)
-    if (!apiKey) {
-      res.writeHead(401, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'missing or malformed norc API key' }))
-      return
-    }
-    const server = buildServer(apiKey)
-    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
-    res.on('close', () => {
-      transport.close()
-      server.close()
-    })
-    await server.connect(transport)
-    await transport.handleRequest(req, res)
+    await handleMcp(req, res)
   }).listen(port, () => {
     console.log(`norc-mcp listening on :${port}`)
   })

@@ -1,0 +1,1 @@
+norc-mcp: POST /mcp
