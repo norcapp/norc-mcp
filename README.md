@@ -27,6 +27,14 @@ MCP server for connecting AI platforms (Claude, ChatGPT, etc.) to your [norc](ht
      }
    }
    ```
+   On Windows, Claude Desktop cannot launch `npx` directly; wrap it in `cmd`:
+   ```json
+   "norc": {
+     "command": "cmd",
+     "args": ["/c", "npx", "-y", "norc-mcp"],
+     "env": { "NORC_API_KEY": "norc_sk_..." }
+   }
+   ```
 4. Quit Claude Desktop completely and reopen it. Closing the window is not enough. norc's tools then appear in the tools menu.
 
 ### Claude Code
