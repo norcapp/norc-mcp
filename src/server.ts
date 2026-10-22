@@ -21,7 +21,7 @@ export function extractApiKey(headers: Headers): string | null {
 }
 
 function buildServer(apiKey: string): McpServer {
-  const server = new McpServer({ name: 'norc-mcp', version: '0.2.2' })
+  const server = new McpServer({ name: 'norc-mcp', version: '0.3.0' })
   const client = new VaultClient(apiKey, VAULT_BASE_URL)
   registerJobTools(server, client)
   registerMachineTools(server, client)
