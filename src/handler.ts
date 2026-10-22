@@ -39,6 +39,14 @@ export async function handleMcp(req: IncomingMessage, res: ServerResponse): Prom
     res.writeHead(401, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'missing or malformed norc API key' }))
     return
   }
+  // Vercel parses lazily on first access and throws on malformed JSON.
+  let body: unknown
+  try {
+    body = (req as IncomingMessage & { body?: unknown }).body
+  } catch {
+    res.writeHead(400, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'invalid JSON body' }))
+    return
+  }
   const server = buildServer(apiKey)
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
   res.on('close', () => {
@@ -47,5 +55,5 @@ export async function handleMcp(req: IncomingMessage, res: ServerResponse): Prom
   })
   await server.connect(transport)
   // Vercel pre-parses the body onto req.body; the standalone listener leaves the stream unread.
-  await transport.handleRequest(req, res, (req as IncomingMessage & { body?: unknown }).body)
+  await transport.handleRequest(req, res, body)
 }
