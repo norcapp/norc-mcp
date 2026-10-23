@@ -46,6 +46,10 @@ claude mcp add norc --env NORC_API_KEY=norc_sk_... -- npx -y norc-mcp
 
 Use the same `command` / `args` / `env` block as the Claude Desktop config above. Without `NORC_API_KEY` (or `--stdio`) the server starts in HTTP mode instead, and a missing or malformed key in stdio mode exits with an error.
 
+### Hosted (remote clients)
+
+For clients that only support remote servers, use `https://mcp.norc.app/mcp` (Streamable HTTP, `POST`) with the header `Authorization: Bearer norc_sk_...`. It is the same code as this repo, deployed on Vercel; your key is forwarded to `vault.norc.app` and not stored.
+
 ## Tools
 
 - `list_jobs`, `create_job`, `update_job`, `delete_job`
