@@ -31,8 +31,9 @@ function runHttp(): void {
       return
     }
     await handleMcp(req, res)
-  }).listen(port, () => {
-    console.log(`norc-mcp listening on :${port}`)
+  // Loopback by default; set HOST=0.0.0.0 (the Docker image does) to accept remote connections.
+  }).listen(port, process.env.HOST ?? '127.0.0.1', () => {
+    console.log(`norc-mcp listening on ${process.env.HOST ?? '127.0.0.1'}:${port}`)
   })
 }
 
