@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { computeDiff, registerGitopsTools } from './gitops.js'
+import { computeDiff, registerGitopsTools, signDiff, verifyToken } from './gitops.js'
 
 const machines = [{ id: 'm1', name: 'web' }]
 const job = (id: string, name: string, schedule = '0 * * * *') => ({ id, machine_id: 'm1', name, schedule, command: 'echo', enabled: true })
@@ -25,25 +25,51 @@ describe('computeDiff', () => {
 })
 
 describe('sync_jobs tool', () => {
-  async function run(apply: boolean | undefined) {
-    const post = vi.fn().mockResolvedValue({ results: [] })
+  const KEY = 'norc_sk_test'
+  function setupSync() {
+    const post = vi.fn().mockResolvedValue({ results: [{ key: 'web/n', op: 'create', ok: true }] })
     const get = vi.fn((p: string) => Promise.resolve(p.endsWith('machines') ? machines : [job('9', 'old')]))
     const server = new McpServer({ name: 't', version: '0' })
     const spy = vi.spyOn(server, 'registerTool')
-    registerGitopsTools(server, { get, post } as never)
-    const handler = spy.mock.calls[0]![2] as (a: unknown) => Promise<{ content: { text: string }[] }>
-    const out = await handler({ jobs: [{ machine: 'web', name: 'n', schedule: '0 * * * *', command: 'echo' }], apply })
-    return { post, out }
+    registerGitopsTools(server, { get, post } as never, KEY)
+    const handler = spy.mock.calls[0]![2] as unknown as (a: unknown) => Promise<{ isError?: boolean; content: { text: string }[] }>
+    return { post, handler }
   }
+  const jobs = [{ machine: 'web', name: 'n', schedule: '0 * * * *', command: 'echo' }]
+  const tokenOf = (t: string) => /"confirmation_token": "([^"]+)"/.exec(t)![1]!
 
-  it('dry run does not POST', async () => {
-    const { post, out } = await run(undefined)
+  it('dry run does not POST and issues a token', async () => {
+    const { post, handler } = setupSync()
+    const out = await handler({ jobs })
     expect(post).not.toHaveBeenCalled()
     expect(out.content[0]!.text).toContain('"applied": false')
+    expect(tokenOf(out.content[0]!.text)).toMatch(/^v1\./)
   })
 
-  it('apply POSTs the diff to /api/v1/jobs/sync', async () => {
-    const { post } = await run(true)
-    expect(post).toHaveBeenCalledWith('/api/v1/jobs/sync', expect.objectContaining({ deletes: [{ key: 'web/old', id: '9' }] }))
+  it('apply needs a valid token and the delete count, then POSTs with an idempotency key', async () => {
+    const { post, handler } = setupSync()
+    const token = tokenOf((await handler({ jobs })).content[0]!.text)
+    expect((await handler({ jobs, confirmation_token: 'v1.1.bad' })).isError).toBe(true)
+    expect((await handler({ jobs, confirmation_token: token })).isError).toBe(true) // missing delete count
+    const out = await handler({ jobs, confirmation_token: token, confirm_delete_count: 1 })
+    expect(post).toHaveBeenCalledWith('/api/v1/jobs/sync', expect.objectContaining({ deletes: [{ key: 'web/old', id: '9' }] }), { 'Idempotency-Key': expect.any(String) })
+    expect(out.content[0]!.text).toContain('will NOT run')
+  })
+
+  it('a token for one diff does not apply a different one', async () => {
+    const { post, handler } = setupSync()
+    const token = tokenOf((await handler({ jobs })).content[0]!.text)
+    const other = [{ ...jobs[0]!, command: 'curl x' }]
+    expect((await handler({ jobs: other, confirmation_token: token, confirm_delete_count: 1 })).isError).toBe(true)
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('verifyToken rejects expired tokens and other keys', () => {
+    const d = computeDiff([], machines, [job('1', 'a')])
+    const { errors: _e, ...diff } = d
+    const t = signDiff(KEY, diff, 1000)
+    expect(verifyToken(KEY, diff, t, 500)).toBe(true)
+    expect(verifyToken(KEY, diff, t, 2000)).toBe(false)
+    expect(verifyToken('norc_sk_other', diff, t, 500)).toBe(false)
   })
 })

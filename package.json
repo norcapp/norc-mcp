@@ -1,7 +1,7 @@
 {
   "name": "norc-mcp",
-  "version": "0.3.0",
-  "description": "MCP server for connecting AI platforms to your norc account — manage cron jobs, machines, and run history.",
+  "version": "0.4.0",
+  "description": "MCP server for connecting AI platforms to your norc account \u2014 manage cron jobs, machines, and run history.",
   "type": "module",
   "license": "MIT",
   "main": "dist/server.js",
@@ -22,7 +22,8 @@
     "url": "git+https://github.com/norcapp/norc-mcp.git"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "packageManager": "pnpm@9.15.9",
   "scripts": {
