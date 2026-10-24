@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { computeDiff, registerGitopsTools, signDiff, verifyToken } from './gitops.js'
+import { computeDiff, listAllJobs, MAX_JOB_PAGES, registerGitopsTools, signDiff, verifyToken } from './gitops.js'
 
 const machines = [{ id: 'm1', name: 'web' }]
 const job = (id: string, name: string, schedule = '0 * * * *') => ({ id, machine_id: 'm1', name, schedule, command: 'echo', enabled: true })
@@ -28,10 +28,11 @@ describe('sync_jobs tool', () => {
   const KEY = 'norc_sk_test'
   function setupSync() {
     const post = vi.fn().mockResolvedValue({ results: [{ key: 'web/n', op: 'create', ok: true }] })
-    const get = vi.fn((p: string) => Promise.resolve(p.endsWith('machines') ? machines : [job('9', 'old')]))
+    const get = vi.fn(() => Promise.resolve(machines))
+    const getPage = vi.fn(() => Promise.resolve({ data: [job('9', 'old')], nextCursor: null }))
     const server = new McpServer({ name: 't', version: '0' })
     const spy = vi.spyOn(server, 'registerTool')
-    registerGitopsTools(server, { get, post } as never, KEY)
+    registerGitopsTools(server, { get, getPage, post } as never, KEY)
     const handler = spy.mock.calls[0]![2] as unknown as (a: unknown) => Promise<{ isError?: boolean; content: { text: string }[] }>
     return { post, handler }
   }
@@ -64,6 +65,23 @@ describe('sync_jobs tool', () => {
     expect(post).not.toHaveBeenCalled()
   })
 
+  it('reads every page of jobs, so a job beyond page one is not deleted or re-created', async () => {
+    const post = vi.fn().mockResolvedValue({ results: [] })
+    const get = vi.fn(() => Promise.resolve(machines))
+    const getPage = vi.fn()
+      .mockResolvedValueOnce({ data: [job('1', 'a')], nextCursor: 'cur_1' })
+      .mockResolvedValueOnce({ data: [job('2', 'n')], nextCursor: null })
+    const server = new McpServer({ name: 't', version: '0' })
+    const spy = vi.spyOn(server, 'registerTool')
+    registerGitopsTools(server, { get, getPage, post } as never, KEY)
+    const handler = spy.mock.calls[0]![2] as unknown as (a: unknown) => Promise<{ content: { text: string }[] }>
+    const out = await handler({ jobs: [...jobs, { machine: 'web', name: 'a', schedule: '0 * * * *', command: 'echo' }] })
+    expect(getPage).toHaveBeenCalledTimes(2)
+    expect(getPage.mock.calls[1]![0]).toContain('cursor=cur_1')
+    expect(out.content[0]!.text).toContain('"deletes": []')
+    expect(out.content[0]!.text).toContain('"creates": []')
+  })
+
   it('verifyToken rejects expired tokens and other keys', () => {
     const d = computeDiff([], machines, [job('1', 'a')])
     const { errors: _e, ...diff } = d
@@ -71,5 +89,24 @@ describe('sync_jobs tool', () => {
     expect(verifyToken(KEY, diff, t, 500)).toBe(true)
     expect(verifyToken(KEY, diff, t, 2000)).toBe(false)
     expect(verifyToken('norc_sk_other', diff, t, 500)).toBe(false)
+  })
+})
+
+describe('listAllJobs', () => {
+  it('concatenates pages in order', async () => {
+    const getPage = vi.fn()
+      .mockResolvedValueOnce({ data: [{ id: '1' }], nextCursor: 'c1' })
+      .mockResolvedValueOnce({ data: [{ id: '2' }], nextCursor: null })
+    expect((await listAllJobs({ getPage } as never)).map((j) => j.id)).toEqual(['1', '2'])
+  })
+  it('errors clearly beyond the page cap instead of returning a partial list', async () => {
+    let n = 0
+    const getPage = vi.fn(() => Promise.resolve({ data: [], nextCursor: `c${n++}` }))
+    await expect(listAllJobs({ getPage } as never)).rejects.toThrow(/more than/)
+    expect(getPage).toHaveBeenCalledTimes(MAX_JOB_PAGES)
+  })
+  it('errors when the cursor does not advance', async () => {
+    const getPage = vi.fn(() => Promise.resolve({ data: [], nextCursor: 'same' }))
+    await expect(listAllJobs({ getPage } as never)).rejects.toThrow(/did not advance/)
   })
 })

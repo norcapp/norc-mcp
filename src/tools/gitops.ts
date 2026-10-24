@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
-import type { VaultClient } from '../vault-client.js'
+import { VaultApiError, type VaultClient } from '../vault-client.js'
 import { approvalNotice, clean, fail, framed, text } from '../output.js'
 import * as v from '../validation.js'
 
@@ -60,6 +60,25 @@ export function verifyToken(apiKey: string, diff: Diff, token: string, now = Dat
   return a.length === b.length && timingSafeEqual(a, b)
 }
 
+const PAGE_SIZE = 500
+export const MAX_JOB_PAGES = 40
+
+// The vault paginates /api/v1/jobs; a diff computed from only the first page would treat jobs on later pages as
+// missing (wrongly creating or deleting them), so read every page and refuse to guess beyond a sane cap.
+export async function listAllJobs(client: Pick<VaultClient, 'getPage'>): Promise<Job[]> {
+  const all: Job[] = []
+  let cursor: string | null = null
+  for (let page = 0; page < MAX_JOB_PAGES; page++) {
+    const qs: string = `limit=${PAGE_SIZE}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
+    const res: { data: Job[]; nextCursor: string | null } = await client.getPage<Job[]>(`/api/v1/jobs?${qs}`)
+    all.push(...res.data)
+    if (!res.nextCursor) return all
+    if (res.nextCursor === cursor) throw new Error('Job listing did not advance; not applying anything.')
+    cursor = res.nextCursor
+  }
+  throw new Error(`The account has more than ${MAX_JOB_PAGES * PAGE_SIZE} jobs, which is more than sync_jobs can safely compare. Nothing was changed.`)
+}
+
 export function registerGitopsTools(server: McpServer, client: VaultClient, apiKey: string): void {
   server.registerTool(
     'sync_jobs',
@@ -90,7 +109,13 @@ export function registerGitopsTools(server: McpServer, client: VaultClient, apiK
     },
     async ({ jobs, confirmation_token, confirm_delete_count }) => {
       const desired = jobs.map((j) => ({ ...j, enabled: j.enabled ?? true }))
-      const [machines, live] = await Promise.all([client.get<Machine[]>('/api/v1/machines'), client.get<Job[]>('/api/v1/jobs')])
+      let machines: Machine[], live: Job[]
+      try {
+        ;[machines, live] = await Promise.all([client.get<Machine[]>('/api/v1/machines'), listAllJobs(client)])
+      } catch (e) {
+        if (e instanceof VaultApiError) throw e
+        return fail(`Not applied. ${e instanceof Error ? e.message : 'Could not read the current jobs.'}`)
+      }
       const { errors, ...diff } = computeDiff(desired, machines, live)
       if (errors.length > 0) return fail(`Not applied. ${errors.map((e) => clean(e, 200)).join('; ')}`)
       const ops = diff.creates.length + diff.updates.length + diff.deletes.length
