@@ -15,6 +15,16 @@ describe('computeDiff', () => {
     expect(d.errors).toEqual([])
   })
 
+  it('an undecryptable live job (command null) is updated to the desired command', () => {
+    const d = computeDiff(
+      [{ machine: 'laptop', name: 'n', schedule: '0 0 * * *', command: 'echo hi', enabled: true }],
+      [{ id: 'm1', name: 'laptop' }],
+      [{ id: 'j1', machine_id: 'm1', name: 'n', schedule: '0 0 * * *', command: null, enabled: true }],
+    )
+    expect(d.updates).toEqual([{ key: 'laptop/n', id: 'j1', patch: { schedule: '0 0 * * *', command: 'echo hi', enabled: true } }])
+    expect(d.creates).toEqual([])
+    expect(d.deletes).toEqual([])
+  })
   it('reports unknown machine and does not delete-by-collision on "/" names', () => {
     expect(computeDiff([{ ...want('x'), machine: 'nope' }], machines, []).errors).toHaveLength(1)
     const two = [{ id: 'm1', name: 'a' }, { id: 'm2', name: 'a/b' }]

@@ -3,7 +3,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { VaultClient } from '../vault-client.js'
 
 interface Machine { id: string; name: string }
-interface Job { id: string; machine_id: string; name: string; schedule: string; command: string; enabled: boolean }
+// command is null when the vault cannot decrypt the job; it never equals a desired command, so sync re-sets it.
+interface Job { id: string; machine_id: string; name: string; schedule: string; command: string | null; enabled: boolean }
 interface Desired { machine: string; name: string; schedule: string; command: string; enabled: boolean }
 
 // JSON key, not "a/b": names may contain "/" and would collide.
