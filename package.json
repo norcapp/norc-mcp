@@ -1,6 +1,6 @@
 {
   "name": "norc-mcp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "MCP server for connecting AI platforms to your norc account — manage cron jobs, machines, and run history.",
   "type": "module",
   "license": "MIT",
