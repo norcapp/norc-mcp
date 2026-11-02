@@ -7,6 +7,7 @@
 [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-io.github.norcapp%2Fnorc--mcp-blue)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.norcapp/norc-mcp)
 [![License: MIT](https://img.shields.io/npm/l/norc-mcp)](LICENSE)
 [![mcptry](https://mcptry.com/badge/io.github.norcapp/norc-mcp.svg)](https://mcptry.com/servers/io.github.norcapp/norc-mcp)
+[![Glama](https://glama.ai/mcp/servers/norcapp/norc-mcp/badges/score.svg)](https://glama.ai/mcp/servers/norcapp/norc-mcp)
 
 MCP server for connecting AI platforms (Claude, ChatGPT, etc.) to your [norc](https://norc.app) account — manage cron jobs, machines, and run history from a chat.
 
