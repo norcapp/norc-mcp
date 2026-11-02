@@ -1,5 +1,11 @@
 # norc-mcp
 
+[![npm](https://img.shields.io/npm/v/norc-mcp)](https://www.npmjs.com/package/norc-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/norc-mcp)](https://www.npmjs.com/package/norc-mcp)
+[![Docker](https://img.shields.io/docker/v/norcapp/norc-mcp?sort=semver&label=docker)](https://hub.docker.com/r/norcapp/norc-mcp)
+[![Docker pulls](https://img.shields.io/docker/pulls/norcapp/norc-mcp)](https://hub.docker.com/r/norcapp/norc-mcp)
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-io.github.norcapp%2Fnorc--mcp-blue)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.norcapp/norc-mcp)
+[![License: MIT](https://img.shields.io/npm/l/norc-mcp)](LICENSE)
 [![mcptry](https://mcptry.com/badge/io.github.norcapp/norc-mcp.svg)](https://mcptry.com/servers/io.github.norcapp/norc-mcp)
 
 MCP server for connecting AI platforms (Claude, ChatGPT, etc.) to your [norc](https://norc.app) account — manage cron jobs, machines, and run history from a chat.
