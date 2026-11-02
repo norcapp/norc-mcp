@@ -4,6 +4,15 @@
   "title": "norc",
   "description": "Manage cron jobs, machines and run history in your norc account from any AI chat.",
   "websiteUrl": "https://norc.app/mcp",
+  "icons": [
+    {
+      "src": "https://norc.app/favicon.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": [
+        "any"
+      ]
+    }
+  ],
   "repository": {
     "url": "https://github.com/norcapp/norc-mcp",
     "source": "github"
