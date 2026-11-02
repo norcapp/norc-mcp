@@ -1,5 +1,7 @@
 # norc-mcp
 
+[![mcptry](https://mcptry.com/badge/io.github.norcapp/norc-mcp.svg)](https://mcptry.com/servers/io.github.norcapp/norc-mcp)
+
 MCP server for connecting AI platforms (Claude, ChatGPT, etc.) to your [norc](https://norc.app) account — manage cron jobs, machines, and run history from a chat.
 
 ## Setup
