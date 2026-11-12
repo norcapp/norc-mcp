@@ -10,6 +10,9 @@ describe('framed', () => {
     expect(out).not.toContain('\u202e')
     expect(out).not.toContain('\u0007')
   })
+  it('passes a null command (undecryptable job) through unchanged', () => {
+    expect(framed({ command: null })).toContain('"command": null')
+  })
   it('truncates list commands with a marker but keeps full text when asked', () => {
     const command = 'a'.repeat(900)
     expect(framed({ command })).toContain('truncated: 900 chars total')
