@@ -112,7 +112,7 @@ describe('listAllJobs', () => {
   it('errors clearly beyond the page cap instead of returning a partial list', async () => {
     let n = 0
     const getPage = vi.fn(() => Promise.resolve({ data: [], nextCursor: `c${n++}` }))
-    await expect(listAllJobs({ getPage } as never)).rejects.toThrow(/more than/)
+    await expect(listAllJobs({ getPage } as never)).rejects.toThrow(/more than[\s\S]*sync_jobs-limits/)
     expect(getPage).toHaveBeenCalledTimes(MAX_JOB_PAGES)
   })
   it('errors when the cursor does not advance', async () => {

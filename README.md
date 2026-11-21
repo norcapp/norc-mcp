@@ -80,7 +80,7 @@ Jobs created or changed through the API are **pending** until the account owner 
 | `rename_machine` | Rename a machine | |
 | `delete_machine` | Unpair (archive) a machine and its jobs | Needs `confirm: true` and the exact machine `name`; undo for about 10 minutes |
 | `list_runs` | Run history (status, exit code, timestamps) | Read-only. Paginated |
-| `sync_jobs` | Declarative sync of your full job set (like `norc gitops`) | Two steps: a dry run returns the diff and a 5-minute `confirmation_token`; applying needs that token and `confirm_delete_count`. Jobs not listed are archived. At most 100 operations per request. Needs the gitops sync feature on your account |
+| `sync_jobs` | Declarative sync of your full job set (like `norc gitops`) | Two steps: a dry run returns the diff and a 5-minute `confirmation_token`; applying needs that token and `confirm_delete_count`. Jobs not listed are archived. At most 100 changes per call; see [sync_jobs limits](https://norc.app/docs/mcp/#sync_jobs-limits). Needs the gitops sync feature on your account |
 
 Every tool sets MCP annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`). Text that comes from your account (job names, commands, hostnames) is returned inside a `<norc-data>` block with a fixed preamble stating it is data, control characters are stripped, and long fields are truncated. Upstream error text is not forwarded; errors are stable messages with a request id you can quote to support. Inputs are validated before any request is sent (length limits, no control characters, cron shape). Requests time out after 15 seconds and writes are never retried.
 

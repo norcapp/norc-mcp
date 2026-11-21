@@ -39,6 +39,8 @@ export function computeDiff(desired: Desired[], machines: Machine[], jobs: Job[]
 }
 
 export const MAX_OPS = 100
+// Every limit error points here, so a user who hits one can see all of them.
+export const LIMITS_URL = 'https://norc.app/docs/mcp/#sync_jobs-limits'
 // Bound on the desired set itself (omitted jobs are deletes, so a caller cannot split it); the operation cap is checked on the diff.
 const MAX_JOBS = 1000
 export const TOKEN_TTL_MS = 5 * 60 * 1000
@@ -79,7 +81,7 @@ export async function listAllJobs(client: Pick<VaultClient, 'getPage'>): Promise
     if (res.nextCursor === cursor) throw new Error('Job listing did not advance; not applying anything.')
     cursor = res.nextCursor
   }
-  throw new Error(`The account has more than ${MAX_JOB_PAGES * PAGE_SIZE} jobs, which is more than sync_jobs can safely compare. Nothing was changed.`)
+  throw new Error(`The account has more than ${MAX_JOB_PAGES * PAGE_SIZE} jobs, which is more than sync_jobs can safely compare. Nothing was changed. See ${LIMITS_URL}`)
 }
 
 export function registerGitopsTools(server: McpServer, client: VaultClient, apiKey: string): void {
@@ -91,7 +93,7 @@ export function registerGitopsTools(server: McpServer, client: VaultClient, apiK
         'Two steps. Step 1: call with only `jobs` to get a dry-run diff and a short-lived confirmation_token. Show the user the whole diff, especially the deletes, ' +
         'and get their explicit confirmation. Step 2: call again with the same `jobs`, the confirmation_token, and confirm_delete_count equal to the number of deletes shown. ' +
         'Created or changed jobs hold shell commands that run as the user on their machine, and only after the owner approves them in the Norc app; they stay pending until then. ' +
-        'At most 100 operations per request. Requires the gitops sync feature on the account.',
+        `At most ${MAX_OPS} operations per request (limits: ${LIMITS_URL}). Requires the gitops sync feature on the account.`,
       inputSchema: {
         jobs: z
           .array(
@@ -103,7 +105,7 @@ export function registerGitopsTools(server: McpServer, client: VaultClient, apiK
               enabled: z.boolean().optional().describe('Defaults to true'),
             }),
           )
-          .max(MAX_JOBS)
+          .max(MAX_JOBS, `At most ${MAX_JOBS} jobs per sync_jobs call. See ${LIMITS_URL}`)
           .describe('The complete desired job set across all machines'),
         confirmation_token: z.string().max(200).optional().describe('Token from the dry run; applies the diff it was issued for'),
         confirm_delete_count: z.number().int().min(0).optional().describe('Number of deletes in the diff the user confirmed'),
@@ -122,7 +124,7 @@ export function registerGitopsTools(server: McpServer, client: VaultClient, apiK
       const { errors, ...diff } = computeDiff(desired, machines, live)
       if (errors.length > 0) return fail('Not applied. The desired job set has errors; fix them and retry.', framed({ errors }))
       const ops = diff.creates.length + diff.updates.length + diff.deletes.length
-      if (ops > MAX_OPS) return fail(`Not applied: ${ops} operations exceeds the limit of ${MAX_OPS} per request. Stage the change: each call must still list every job that should remain, but change or remove at most ${MAX_OPS}.`)
+      if (ops > MAX_OPS) return fail(`Not applied: ${ops} operations exceeds the limit of ${MAX_OPS} per request. Stage the change: each call must still list every job that should remain, but change or remove at most ${MAX_OPS}. See ${LIMITS_URL}`)
 
       if (!confirmation_token) {
         const token = signDiff(apiKey, diff, Date.now() + TOKEN_TTL_MS)
