@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { VaultClient } from '../vault-client.js'
-import { clean, fail, framed, text } from '../output.js'
+import { fail, framed, text } from '../output.js'
 import * as v from '../validation.js'
 
 export function registerMachineTools(server: McpServer, client: VaultClient): void {
@@ -36,9 +36,9 @@ export function registerMachineTools(server: McpServer, client: VaultClient): vo
     async ({ id, name }) => {
       const path = `/api/v1/machines/${encodeURIComponent(id)}`
       const machine = await client.get<{ name: string }>(path)
-      if (machine.name !== name) return fail(`Not deleted: the name given does not match machine ${id} ("${clean(machine.name, 80)}"). Check with the user and retry with the exact name.`)
+      if (machine.name !== name) return fail(`Not deleted: the name given does not match machine ${id}. Check with the user and retry with the exact name.`, framed({ actual_name: machine.name }))
       await client.delete(path)
-      return text(`Machine ${id} ("${clean(machine.name, 80)}") and its jobs were archived. The owner can undo this in the Norc app for about 10 minutes.`)
+      return text(`Machine ${id} and its jobs were archived. The owner can undo this in the Norc app for about 10 minutes.`, framed({ name: machine.name }))
     },
   )
 }

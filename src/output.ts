@@ -38,8 +38,8 @@ export function text(...parts: string[]) {
   return { content: [{ type: 'text' as const, text: parts.filter(Boolean).join('\n\n') }] }
 }
 
-export function fail(message: string) {
-  return { isError: true as const, content: [{ type: 'text' as const, text: message }] }
+export function fail(message: string, ...more: string[]) {
+  return { isError: true as const, content: [{ type: 'text' as const, text: [message, ...more].filter(Boolean).join('\n\n') }] }
 }
 
 export const PENDING_NOTICE =

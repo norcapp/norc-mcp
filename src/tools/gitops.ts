@@ -2,7 +2,7 @@ import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import { VaultApiError, type VaultClient } from '../vault-client.js'
-import { approvalNotice, clean, fail, framed, text } from '../output.js'
+import { approvalNotice, fail, framed, text } from '../output.js'
 import * as v from '../validation.js'
 
 interface Machine { id: string; name: string }
@@ -39,6 +39,8 @@ export function computeDiff(desired: Desired[], machines: Machine[], jobs: Job[]
 }
 
 export const MAX_OPS = 100
+// Bound on the desired set itself (omitted jobs are deletes, so a caller cannot split it); the operation cap is checked on the diff.
+const MAX_JOBS = 1000
 export const TOKEN_TTL_MS = 5 * 60 * 1000
 
 type Diff = Omit<ReturnType<typeof computeDiff>, 'errors'>
@@ -101,7 +103,7 @@ export function registerGitopsTools(server: McpServer, client: VaultClient, apiK
               enabled: z.boolean().optional().describe('Defaults to true'),
             }),
           )
-          .max(MAX_OPS)
+          .max(MAX_JOBS)
           .describe('The complete desired job set across all machines'),
         confirmation_token: z.string().max(200).optional().describe('Token from the dry run; applies the diff it was issued for'),
         confirm_delete_count: z.number().int().min(0).optional().describe('Number of deletes in the diff the user confirmed'),
@@ -118,7 +120,7 @@ export function registerGitopsTools(server: McpServer, client: VaultClient, apiK
         return fail(`Not applied. ${e instanceof Error ? e.message : 'Could not read the current jobs.'}`)
       }
       const { errors, ...diff } = computeDiff(desired, machines, live)
-      if (errors.length > 0) return fail(`Not applied. ${errors.map((e) => clean(e, 200)).join('; ')}`)
+      if (errors.length > 0) return fail('Not applied. The desired job set has errors; fix them and retry.', framed({ errors }))
       const ops = diff.creates.length + diff.updates.length + diff.deletes.length
       if (ops > MAX_OPS) return fail(`Not applied: ${ops} operations exceeds the limit of ${MAX_OPS} per request. Sync a smaller set.`)
 

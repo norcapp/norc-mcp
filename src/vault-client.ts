@@ -19,6 +19,14 @@ function stableMessage(status: number): string {
   return 'Norc service error'
 }
 
+function parseJson(s: string): unknown {
+  try {
+    return JSON.parse(s)
+  } catch {
+    return {}
+  }
+}
+
 export const DEFAULT_TIMEOUT_MS = 15_000
 
 // Thin HTTP client: every call forwards the end user's own API key as a Bearer token.
@@ -32,6 +40,7 @@ export class VaultClient {
 
   private async send(method: string, path: string, body?: unknown, extra: Record<string, string> = {}): Promise<{ data: unknown; headers: Headers }> {
     let res: Response
+    let data: unknown
     try {
       res = await fetch(`${this.baseUrl}${path}`, {
         method,
@@ -39,14 +48,14 @@ export class VaultClient {
         body: body !== undefined ? JSON.stringify(body) : undefined,
         signal: AbortSignal.timeout(this.timeoutMs),
       })
+      // The timeout also covers the body read, so a stalled body is a timeout, not an empty result.
+      data = res.status === 204 ? undefined : await res.text().then(parseJson)
     } catch (e) {
       const timedOut = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError')
       throw new VaultApiError(timedOut ? 'Norc did not respond in time' : 'Could not reach Norc', 0)
     }
-    if (res.status === 204) return { data: undefined, headers: res.headers }
-    const data = await res.json().catch(() => ({}))
     if (!res.ok) {
-      const rid = (data as { request_id?: unknown }).request_id
+      const rid = data && typeof data === 'object' ? (data as { request_id?: unknown }).request_id : undefined
       throw new VaultApiError(stableMessage(res.status), res.status, typeof rid === 'string' && /^[\w-]{1,64}$/.test(rid) ? rid : undefined)
     }
     return { data, headers: res.headers }
