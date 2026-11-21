@@ -23,7 +23,8 @@
     "url": "git+https://github.com/norcapp/norc-mcp.git"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "packageManager": "pnpm@9.15.9",
   "scripts": {

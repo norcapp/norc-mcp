@@ -13,10 +13,27 @@ describe('VaultClient', () => {
     expect(init.headers.Authorization).toBe('Bearer norc_sk_test')
   })
 
-  it('throws VaultApiError with the response status and message on failure', async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ error: 'job not found' }), { status: 404 }))
+  it('maps failures to a stable message plus the request id, never upstream text', async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ error: 'relation "jobs" violates NJL01', request_id: 'abc-123' }), { status: 500 }))
     const client = new VaultClient('norc_sk_test', 'https://vault.norc.app')
-    await expect(client.get('/api/v1/jobs/missing')).rejects.toMatchObject({ status: 404, message: 'job not found' })
+    const err = (await client.get("/api/v1/jobs/x").catch((e: unknown) => e)) as VaultApiError
+    expect(err).toMatchObject({ status: 500, requestId: 'abc-123' })
+    expect(err.message).toBe('Norc service error (request id: abc-123)')
+    expect(err.message).not.toContain('NJL01')
+  })
+
+  it('sets a fetch timeout signal and does not retry', async () => {
+    fetchMock.mockRejectedValue(Object.assign(new Error('x'), { name: 'TimeoutError' }))
+    const client = new VaultClient('norc_sk_test', 'https://vault.norc.app')
+    await expect(client.post('/api/v1/jobs', {})).rejects.toMatchObject({ message: 'Norc did not respond in time' })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0]![1].signal).toBeInstanceOf(AbortSignal)
+  })
+
+  it('getPage returns the next cursor header', async () => {
+    fetchMock.mockResolvedValue(new Response('[]', { status: 200, headers: { 'x-next-cursor': 'cur_1' } }))
+    const client = new VaultClient('norc_sk_test', 'https://vault.norc.app')
+    await expect(client.getPage('/api/v1/jobs')).resolves.toEqual({ data: [], nextCursor: 'cur_1' })
   })
 
   it('post sends a JSON body', async () => {
@@ -32,5 +49,20 @@ describe('VaultClient', () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
     const client = new VaultClient('norc_sk_test', 'https://vault.norc.app')
     await expect(client.delete('/api/v1/jobs/j1')).resolves.toBeUndefined()
+  })
+
+  it('treats a stalled response body as a timeout, not an empty result', async () => {
+    const body = new ReadableStream({ start() {} })
+    const res = new Response(body, { status: 200 })
+    vi.spyOn(res, 'text').mockRejectedValue(Object.assign(new Error('aborted'), { name: 'TimeoutError' }))
+    fetchMock.mockResolvedValue(res)
+    const client = new VaultClient('norc_sk_test', 'https://vault.norc.app')
+    await expect(client.get('/api/v1/jobs')).rejects.toMatchObject({ message: 'Norc did not respond in time' })
+  })
+
+  it('keeps the status-based error when the error body is JSON null', async () => {
+    fetchMock.mockResolvedValue(new Response('null', { status: 500 }))
+    const client = new VaultClient('norc_sk_test', 'https://vault.norc.app')
+    await expect(client.get('/api/v1/jobs/x')).rejects.toMatchObject({ status: 500, message: 'Norc service error' })
   })
 })

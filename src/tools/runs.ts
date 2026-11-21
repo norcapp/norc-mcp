@@ -1,28 +1,30 @@
 import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { VaultClient } from '../vault-client.js'
+import { framed, text } from '../output.js'
+import * as v from '../validation.js'
 
 export function registerRunTools(server: McpServer, client: VaultClient): void {
   server.registerTool(
     'list_runs',
     {
-      description: 'List job run history, optionally filtered by job, machine, or status. Paginated via cursor.',
+      description: 'List job run history (status, exit code, timestamps), optionally filtered by job, machine, or status. Paginated via cursor.',
       inputSchema: {
-        job_id: z.string().optional(),
-        machine_id: z.string().optional(),
+        job_id: v.id.optional(),
+        machine_id: v.id.optional(),
         status: z.enum(['success', 'warning', 'failed', 'running', 'disabled']).optional(),
-        cursor: z.string().optional(),
+        cursor: v.cursor.optional(),
         limit: z.number().int().min(1).max(200).optional(),
       },
+      annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async (input) => {
       const params = new URLSearchParams()
-      for (const [k, v] of Object.entries(input)) {
-        if (v !== undefined) params.set(k, String(v))
+      for (const [k, val] of Object.entries(input)) {
+        if (val !== undefined) params.set(k, String(val))
       }
       const qs = params.toString()
-      const result = await client.get(`/api/v1/runs${qs ? `?${qs}` : ''}`)
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
+      return text(framed(await client.get(`/api/v1/runs${qs ? `?${qs}` : ''}`)))
     },
   )
 }
