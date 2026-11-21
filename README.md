@@ -51,13 +51,167 @@ Install the [norc plugin](https://github.com/norcapp/norc-claude-plugin), which 
 claude mcp add norc --env NORC_API_KEY=norc_sk_... -- npx -y norc-mcp
 ```
 
-### Other local MCP clients (Cursor, etc.)
+### Remote-config clients
 
-Use the same `command` / `args` / `env` block as the Claude Desktop config above. Without `NORC_API_KEY` (or `--stdio`) the server starts in HTTP mode instead, and a missing or malformed key in stdio mode exits with an error.
+The entries below use the hosted endpoint, `https://mcp.norc.app/mcp`. Most read the key from the `NORC_API_KEY` environment variable. Set it without writing it to your shell history:
 
-### Hosted (remote clients)
+```bash
+printf 'norc API key (norc_sk_...): ' && read -rs NORC_API_KEY && echo && export NORC_API_KEY
+```
 
-For clients that only support remote servers, use `https://mcp.norc.app/mcp` (Streamable HTTP, `POST`) with the header `Authorization: Bearer norc_sk_...`. It is the same code as this repo, deployed on Vercel; your key is forwarded to `vault.norc.app` and not stored.
+The client must inherit the variable. Start it from that same shell (for example `cursor .`), or set `NORC_API_KEY` in the environment your desktop session starts apps with. A client opened from the Dock or Start menu does not see a variable exported in a terminal. Quit the client completely first: a copy that is already running keeps its old environment, and so does a background service such as OpenCode V2's, so restart it too.
+
+#### Codex (CLI and IDE extension)
+
+Add to `~/.codex/config.toml`. Codex reads the token from the named
+environment variable, so the key never sits in the file:
+
+```toml
+[mcp_servers.norc]
+url = "https://mcp.norc.app/mcp"
+bearer_token_env_var = "NORC_API_KEY"
+```
+
+#### Gemini CLI
+
+Add to `~/.gemini/settings.json` (or `.gemini/settings.json` in a project):
+
+```json
+{
+  "mcpServers": {
+    "norc": {
+      "httpUrl": "https://mcp.norc.app/mcp",
+      "headers": {
+        "Authorization": "Bearer $NORC_API_KEY"
+      }
+    }
+  }
+}
+```
+
+#### Google Antigravity
+
+Open the agent panel's **⋯ menu → MCP Servers → Manage MCP Servers → View raw
+config**, add this to `mcp_config.json` and swap in your key:
+
+```json
+{
+  "mcpServers": {
+    "norc": {
+      "serverUrl": "https://mcp.norc.app/mcp",
+      "headers": {
+        "Authorization": "Bearer norc_sk_your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+#### OpenCode
+
+Add to `opencode.json` in your project (or `~/.config/opencode/opencode.json`). This is the V2 shape, with server names under `mcp.servers`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "norc": {
+        "type": "remote",
+        "url": "https://mcp.norc.app/mcp",
+        "headers": {
+          "Authorization": "Bearer {env:NORC_API_KEY}"
+        }
+      }
+    }
+  }
+}
+```
+
+On OpenCode V1, put `norc` directly under `mcp` and add `"enabled": true`.
+
+#### Cursor
+
+Add to `~/.cursor/mcp.json` (or `.cursor/mcp.json` in a project):
+
+```json
+{
+  "mcpServers": {
+    "norc": {
+      "url": "https://mcp.norc.app/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:NORC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+#### VS Code (GitHub Copilot)
+
+Local harness: add to `.vscode/mcp.json`. VS Code asks for the key the first time the server
+starts and stores it securely:
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "norc-api-key",
+      "description": "norc API key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "norc": {
+      "type": "http",
+      "url": "https://mcp.norc.app/mcp",
+      "headers": {
+        "Authorization": "Bearer ${input:norc-api-key}"
+      }
+    }
+  }
+}
+```
+
+The Copilot harness does not support the `${input:...}` prompt. Use a `.mcp.json` file at the workspace root, which reads the key from the `NORC_API_KEY` environment variable, and start VS Code from a shell that has it set:
+
+```json
+{
+  "mcpServers": {
+    "norc": {
+      "type": "http",
+      "url": "https://mcp.norc.app/mcp",
+      "headers": {
+        "Authorization": "Bearer ${NORC_API_KEY}"
+      },
+      "tools": ["*"]
+    }
+  }
+}
+```
+
+#### Windsurf
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "norc": {
+      "serverUrl": "https://mcp.norc.app/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:NORC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Other clients
+
+- **Local (stdio):** use the same `command` / `args` / `env` block as the Claude Desktop config above. Without `NORC_API_KEY` (or `--stdio`) the server starts in HTTP mode instead, and a missing or malformed key in stdio mode exits with an error.
+- **Remote:** use `https://mcp.norc.app/mcp` (Streamable HTTP, `POST`) with the header `Authorization: Bearer norc_sk_...`. It is the same code as this repo, deployed on Vercel; your key is forwarded to `vault.norc.app` and not stored.
 
 ## Authentication and key choice
 
