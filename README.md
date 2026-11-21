@@ -59,7 +59,7 @@ The entries below use the hosted endpoint, `https://mcp.norc.app/mcp`. Most read
 printf 'norc API key (norc_sk_...): ' && read -rs NORC_API_KEY && echo && export NORC_API_KEY
 ```
 
-The client must inherit the variable. Start it from that same shell (for example `cursor .`), or set `NORC_API_KEY` in the environment your desktop session starts apps with. A client opened from the Dock or Start menu does not see a variable exported in a terminal.
+The client must inherit the variable. Start it from that same shell (for example `cursor .`), or set `NORC_API_KEY` in the environment your desktop session starts apps with. A client opened from the Dock or Start menu does not see a variable exported in a terminal. Quit the client completely first: a copy that is already running keeps its old environment, and so does a background service such as OpenCode V2's, so restart it too.
 
 #### Codex (CLI and IDE extension)
 
