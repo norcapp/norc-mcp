@@ -59,6 +59,8 @@ The entries below use the hosted endpoint, `https://mcp.norc.app/mcp`. Most read
 printf 'norc API key (norc_sk_...): ' && read -rs NORC_API_KEY && echo && export NORC_API_KEY
 ```
 
+The client must inherit the variable. Start it from that same shell (for example `cursor .`), or set `NORC_API_KEY` in the environment your desktop session starts apps with. A client opened from the Dock or Start menu does not see a variable exported in a terminal.
+
 #### Codex (CLI and IDE extension)
 
 Add to `~/.codex/config.toml`. Codex reads the token from the named
@@ -107,23 +109,26 @@ config**, add this to `mcp_config.json` and swap in your key:
 
 #### OpenCode
 
-Add to `opencode.json` in your project (or `~/.config/opencode/opencode.json`):
+Add to `opencode.json` in your project (or `~/.config/opencode/opencode.json`). This is the V2 shape, with server names under `mcp.servers`:
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
-    "norc": {
-      "type": "remote",
-      "url": "https://mcp.norc.app/mcp",
-      "headers": {
-        "Authorization": "Bearer {env:NORC_API_KEY}"
-      },
-      "enabled": true
+    "servers": {
+      "norc": {
+        "type": "remote",
+        "url": "https://mcp.norc.app/mcp",
+        "headers": {
+          "Authorization": "Bearer {env:NORC_API_KEY}"
+        }
+      }
     }
   }
 }
 ```
+
+On OpenCode V1, put `norc` directly under `mcp` and add `"enabled": true`.
 
 #### Cursor
 
@@ -144,7 +149,7 @@ Add to `~/.cursor/mcp.json` (or `.cursor/mcp.json` in a project):
 
 #### VS Code (GitHub Copilot)
 
-Add to `.vscode/mcp.json`. VS Code asks for the key the first time the server
+Local harness: add to `.vscode/mcp.json`. VS Code asks for the key the first time the server
 starts and stores it securely:
 
 ```json
@@ -164,6 +169,23 @@ starts and stores it securely:
       "headers": {
         "Authorization": "Bearer ${input:norc-api-key}"
       }
+    }
+  }
+}
+```
+
+The Copilot harness does not support the `${input:...}` prompt. Use a `.mcp.json` file at the workspace root, which reads the key from the `NORC_API_KEY` environment variable, and start VS Code from a shell that has it set:
+
+```json
+{
+  "mcpServers": {
+    "norc": {
+      "type": "http",
+      "url": "https://mcp.norc.app/mcp",
+      "headers": {
+        "Authorization": "Bearer ${NORC_API_KEY}"
+      },
+      "tools": ["*"]
     }
   }
 }
