@@ -122,7 +122,7 @@ export function registerGitopsTools(server: McpServer, client: VaultClient, apiK
       const { errors, ...diff } = computeDiff(desired, machines, live)
       if (errors.length > 0) return fail('Not applied. The desired job set has errors; fix them and retry.', framed({ errors }))
       const ops = diff.creates.length + diff.updates.length + diff.deletes.length
-      if (ops > MAX_OPS) return fail(`Not applied: ${ops} operations exceeds the limit of ${MAX_OPS} per request. Sync a smaller set.`)
+      if (ops > MAX_OPS) return fail(`Not applied: ${ops} operations exceeds the limit of ${MAX_OPS} per request. Stage the change: each call must still list every job that should remain, but change or remove at most ${MAX_OPS}.`)
 
       if (!confirmation_token) {
         const token = signDiff(apiKey, diff, Date.now() + TOKEN_TTL_MS)
